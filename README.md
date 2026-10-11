@@ -3,7 +3,7 @@
 The knowledge behind the OSLO SSN/SOSA data examples (Flanders), packaged for reuse in any project:
 a modelling guide, workflows as Claude Code skills, and the enforceable rules as SHACL shapes.
 Born in the OSLOthema-SSNSOSA-VL project; the validation server is
-[ld-mcp](../ld-mcp) (`ld-vocab`).
+[ld-mcp](https://github.com/milieuinfo/ld-mcp) (`ld-vocab`).
 
 ## Contents
 
@@ -16,30 +16,46 @@ Born in the OSLOthema-SSNSOSA-VL project; the validation server is
 
 ## Using it in a project
 
-1. **Install the plugin** (skills become available as `oslo-ld:<skill>`):
+1. **Add the kit as a submodule**, so that the project pins the version of the guide it follows:
 
    ```bash
-   claude plugin marketplace add ~/git/oslo-ld-kit
-   claude plugin install oslo-ld@oslo-ld-kit
+   git submodule add https://github.com/milieuinfo/oslo-ld-kit.git oslo-ld-kit
    ```
 
-2. **Load the guide in every session** by importing it from the project's `CLAUDE.md`, so that the
-   rules are in context also outside the skills:
+   Update later with `git submodule update --remote oslo-ld-kit`, review, and commit.
+
+2. **Load the guide in every session** by importing it from the project's `CLAUDE.md` (paths
+   relative to the project), so that the rules are in context also outside the skills:
 
    ```markdown
-   @~/git/oslo-ld-kit/guide/linked-data.md
-   @~/git/oslo-ld-kit/guide/ssn-sosa.md
+   @oslo-ld-kit/guide/linked-data.md
+   @oslo-ld-kit/guide/ssn-sosa.md
    ```
 
-   Add the other guide files as needed. Claude Code asks once for approval of imports from outside
-   the project.
+   Add the other guide files as needed.
 
-3. **Declare a project profile** in `CLAUDE.md`: examples directory, file names, document language,
+3. **Offer the plugin to everyone who opens the project** (skills become available as
+   `oslo-ld:<skill>`), in the project's `.claude/settings.json`:
+
+   ```json
+   {
+     "extraKnownMarketplaces": {
+       "oslo-ld-kit": { "source": { "source": "github", "repo": "milieuinfo/oslo-ld-kit" } }
+     },
+     "enabledPlugins": { "oslo-ld@oslo-ld-kit": true }
+   }
+   ```
+
+   Or install it by hand: `claude plugin marketplace add milieuinfo/oslo-ld-kit` and
+   `claude plugin install oslo-ld@oslo-ld-kit`.
+
+4. **Declare a project profile** in `CLAUDE.md`: examples directory, file names, document language,
    local time zone, unit registry, extra prefixes, validation (see
    [`guide/README.md`](guide/README.md#project-profile)).
 
-4. **Configure validation**: run `ld-vocab` with the project's ontologies and this rules file, in
-   the project's `.mcp.json`:
+5. **Configure validation** with [ld-mcp](https://github.com/milieuinfo/ld-mcp) (`ld-vocab`), built
+   with `mvn package`. In the project's `.mcp.json`, with paths relative to the project and the jar
+   from an environment variable (defaulting to a clone of ld-mcp next to the project):
 
    ```json
    {
@@ -47,10 +63,10 @@ Born in the OSLOthema-SSNSOSA-VL project; the validation server is
        "ld-vocab": {
          "command": "java",
          "args": [
-           "-jar", "/path/to/ld-mcp/ld-mcp-vocab/target/ld-mcp-vocab.jar",
+           "-jar", "${LD_MCP_JAR:-../ld-mcp/ld-mcp-vocab/target/ld-mcp-vocab.jar}",
            "--ontologies", "src/main/resources",
            "--generate-shapes",
-           "--shapes", "/path/to/oslo-ld-kit/rules/ssn-sosa-rules.ttl"
+           "--shapes", "oslo-ld-kit/rules/ssn-sosa-rules.ttl"
          ]
        }
      }
