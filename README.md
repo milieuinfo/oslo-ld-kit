@@ -12,19 +12,34 @@ Born in the OSLOthema-SSNSOSA-VL project; the validation server is
 | `guide/` | the modelling guide: linked data rules, SSN/SOSA rules R1–R15, recurring patterns, discussion document, exercise, diagrams ([`guide/README.md`](guide/README.md)) |
 | `skills/` | workflows: `new-example`, `revise-mapping`, `alternative-mapping`, `map-source-data`, `decision-document`, `design-ontology`, `align-ontologies` |
 | `rules/ssn-sosa-rules.ttl` | the enforceable rules (R2, R3, R5, R7, R9, R11, R12, R13, R15) as SHACL, for `validate_file` |
-| `.claude-plugin/` | plugin manifest (`oslo-ld`) and a marketplace manifest, so the repository can be installed directly |
+| `sync.py` | copies the skills into a project's `.claude/skills/` (see below) |
+| `.claude-plugin/` | plugin manifest (`oslo-ld`) and a marketplace manifest, for using the skills outside a project |
 
 ## Using it in a project
 
-1. **Add the kit as a submodule**, so that the project pins the version of the guide it follows:
+The kit goes into the project as plain files, so that users of the project need nothing but
+`git clone` or `git pull` (no submodules, no plugin installation, no symbolic links). Only the
+maintainer of the project deals with the kit.
+
+1. **Add the kit as a git subtree** in `oslo-ld-kit/`, which pins the version the project follows:
 
    ```bash
-   git submodule add https://github.com/milieuinfo/oslo-ld-kit.git oslo-ld-kit
+   git subtree add --prefix oslo-ld-kit https://github.com/milieuinfo/oslo-ld-kit.git main --squash
    ```
 
-   Update later with `git submodule update --remote oslo-ld-kit`, review, and commit.
+   `git subtree` creates a commit of its own and needs a working tree without uncommitted changes.
 
-2. **Load the guide in every session** by importing it from the project's `CLAUDE.md` (paths
+2. **Copy the skills into the project**, as project skills in `.claude/skills/` (available as
+   `/new-example` and so on), and commit them:
+
+   ```bash
+   python oslo-ld-kit/sync.py
+   ```
+
+   The script rewrites the skills' links to the guide and writes `.claude/skills/.oslo-ld-kit.json`
+   (kit version, copied skills). Skills of the project's own in `.claude/skills/` are left alone.
+
+3. **Load the guide in every session** by importing it from the project's `CLAUDE.md` (paths
    relative to the project), so that the rules are in context also outside the skills:
 
    ```markdown
@@ -33,21 +48,6 @@ Born in the OSLOthema-SSNSOSA-VL project; the validation server is
    ```
 
    Add the other guide files as needed.
-
-3. **Offer the plugin to everyone who opens the project** (skills become available as
-   `oslo-ld:<skill>`), in the project's `.claude/settings.json`:
-
-   ```json
-   {
-     "extraKnownMarketplaces": {
-       "oslo-ld-kit": { "source": { "source": "github", "repo": "milieuinfo/oslo-ld-kit" } }
-     },
-     "enabledPlugins": { "oslo-ld@oslo-ld-kit": true }
-   }
-   ```
-
-   Or install it by hand: `claude plugin marketplace add milieuinfo/oslo-ld-kit` and
-   `claude plugin install oslo-ld@oslo-ld-kit`.
 
 4. **Declare a project profile** in `CLAUDE.md`: examples directory, file names, document language,
    local time zone, unit registry, extra prefixes, validation (see
@@ -72,6 +72,35 @@ Born in the OSLOthema-SSNSOSA-VL project; the validation server is
      }
    }
    ```
+
+## Keeping it up to date
+
+Change the kit in its own repository, never in a project's copy: a change made in
+`oslo-ld-kit/` or `.claude/skills/` of a project conflicts with, or is overwritten by, the next
+update.
+
+**Releasing a change** (maintainer of the kit): raise `version` in `.claude-plugin/plugin.json`
+(patch for a correction, minor for a new rule or skill), check with
+`claude plugin validate --strict .`, commit and push.
+
+**Updating a project** (maintainer of the project), with a clean working tree:
+
+```bash
+git subtree pull --prefix oslo-ld-kit https://github.com/milieuinfo/oslo-ld-kit.git main --squash
+python oslo-ld-kit/sync.py
+git add .claude/skills && git commit -m "oslo-ld-kit <version>"
+```
+
+Review the changes to the guide and the rules (`git show` of the squash commit), and validate the
+project's examples again. Users of the project receive the update with `git pull`; when the rules
+changed, `/mcp` → `ld-vocab` → Reconnect reloads them.
+
+**Without a project:** the repository is also a Claude Code plugin (`oslo-ld`), for using the
+skills elsewhere: `claude plugin marketplace add milieuinfo/oslo-ld-kit` and
+`claude plugin install oslo-ld@oslo-ld-kit`. The plugin is updated only when its `version` changes
+(`claude plugin marketplace update oslo-ld-kit`, or auto-update in `/plugin` → Marketplaces). Do
+not enable it in a project that has the kit as a subtree: the skills would then exist twice, with
+possibly different versions.
 
 ## Contributing
 
