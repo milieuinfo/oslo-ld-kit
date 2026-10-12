@@ -53,9 +53,12 @@ maintainer of the project deals with the kit.
    local time zone, unit registry, extra prefixes, validation (see
    [`guide/README.md`](guide/README.md#project-profile)).
 
-5. **Configure validation** with [ld-mcp](https://github.com/milieuinfo/ld-mcp) (`ld-vocab`), built
-   with `mvn package`. In the project's `.mcp.json`, with paths relative to the project and the jar
-   from an environment variable (defaulting to a clone of ld-mcp next to the project):
+5. **Configure validation** with [ld-mcp](https://github.com/milieuinfo/ld-mcp) (`ld-vocab`). Users
+   need Java 21 and the jar, downloaded from
+   [the latest release](https://github.com/milieuinfo/ld-mcp/releases/latest/download/ld-mcp-vocab.jar)
+   into `tools/` in the project (add `tools/` to `.gitignore`); no Maven. In the project's
+   `.mcp.json`, with paths relative to the project and the jar from an environment variable
+   (developers of ld-mcp point `LD_MCP_JAR` at their own build):
 
    ```json
    {
@@ -63,7 +66,7 @@ maintainer of the project deals with the kit.
        "ld-vocab": {
          "command": "java",
          "args": [
-           "-jar", "${LD_MCP_JAR:-../ld-mcp/ld-mcp-vocab/target/ld-mcp-vocab.jar}",
+           "-jar", "${LD_MCP_JAR:-tools/ld-mcp-vocab.jar}",
            "--ontologies", "src/main/resources",
            "--generate-shapes",
            "--shapes", "oslo-ld-kit/rules/ssn-sosa-rules.ttl",
